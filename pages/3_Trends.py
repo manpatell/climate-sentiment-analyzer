@@ -148,18 +148,27 @@ fig_line.add_hline(y=0, line_dash="dash", line_color="gray", line_width=1)
 fig_line.add_hline(y=0.05, line_dash="dot", line_color="#2ECC71", line_width=0.8)
 fig_line.add_hline(y=-0.05, line_dash="dot", line_color="#E74C3C", line_width=0.8)
 
-# Climate event annotations
+# Climate event annotations — use add_shape + add_annotation to avoid
+# Plotly's datetime arithmetic bug in add_vline with annotation params
 if show_events:
     for event in EVENTS:
-        fig_line.add_vline(
-            x=event["date"],
-            line_dash="dot",
-            line_color="#7F8C8D",
-            line_width=1.5,
-            annotation_text=event["label"],
-            annotation_position="top right",
-            annotation_font_size=10,
-            annotation_font_color="#7F8C8D",
+        x_ts = event["date"].timestamp() * 1000  # Plotly uses ms since epoch
+        fig_line.add_shape(
+            type="line",
+            x0=x_ts, x1=x_ts,
+            y0=-1, y1=1,
+            xref="x", yref="y",
+            line=dict(dash="dot", color="#7F8C8D", width=1.5),
+        )
+        fig_line.add_annotation(
+            x=x_ts,
+            y=0.92,
+            xref="x", yref="y",
+            text=event["label"],
+            showarrow=False,
+            font=dict(size=9, color="#7F8C8D"),
+            textangle=-90,
+            xanchor="left",
         )
 
 fig_line.update_layout(
