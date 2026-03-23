@@ -1,125 +1,209 @@
-"""
-Day 03 — Climate News Sentiment Analyzer
-Theme: NLP
-Tags: nlp, sentiment, pandas, streamlit
+"""Climate Sentiment Analyzer — Overview Dashboard.
 
-Demonstrates: NLP pipeline for analyzing sentiment in climate-related text
-using VADER and keyword extraction, with interactive visualizations.
+Entry point for the Streamlit multi-page application.
+Displays a high-level summary of sentiment across the full sample dataset.
 """
 
-import streamlit as st
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from collections import Counter
-import re
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
 
-st.set_page_config(page_title="Climate Sentiment Analyzer", page_icon="💬", layout="wide")
-st.title("💬 Climate News Sentiment Analyzer")
-st.markdown("Analyze sentiment and key themes in climate & sustainability text.")
+# Ensure the src package is importable when running with `streamlit run app.py`
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# ── Simple rule-based sentiment (no external NLP deps needed) ──────────────────
-POSITIVE_WORDS = {"renewable","clean","sustainable","green","efficient","improved","breakthrough",
-                  "solution","progress","innovative","promising","success","reduce","saving","better",
-                  "achieve","benefit","advance","growth","positive","transition","opportunity"}
-NEGATIVE_WORDS = {"crisis","disaster","pollution","emissions","warming","flood","drought","damage",
-                  "threat","risk","loss","decline","problem","fail","worse","alarming","severe",
-                  "extreme","devastating","collapse","urgent","danger","toxic","harmful","critical"}
-CLIMATE_KEYWORDS = {"carbon","co2","emissions","temperature","fossil","renewable","solar","wind",
-                    "electric","climate","greenhouse","deforestation","biodiversity","ocean","arctic"}
+from src.climate_analyzer.analyzer import ClimateAnalyzer
+from src.climate_analyzer.data import SAMPLE_ARTICLES
 
-def analyze_sentiment(text):
-    words = re.findall(r'\b\w+\b', text.lower())
-    pos = sum(1 for w in words if w in POSITIVE_WORDS)
-    neg = sum(1 for w in words if w in NEGATIVE_WORDS)
-    total = pos + neg
-    if total == 0:
-        score = 0.0
-    else:
-        score = (pos - neg) / total
-    label = "Positive 🟢" if score > 0.1 else ("Negative 🔴" if score < -0.1 else "Neutral 🟡")
-    climate_hits = [w for w in words if w in CLIMATE_KEYWORDS]
-    return {"score": round(score, 3), "label": label, "positive_hits": pos,
-            "negative_hits": neg, "climate_keywords": climate_hits, "word_count": len(words)}
+# ── Page config ─────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Climate Sentiment Analyzer",
+    page_icon="🌍",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-# ── Sample articles ────────────────────────────────────────────────────────────
-SAMPLE_ARTICLES = {
-    "Solar breakthrough": "Scientists achieved a major breakthrough in solar panel efficiency, reaching 47% conversion rate. This innovative solution promises to accelerate the transition to clean renewable energy and significantly reduce carbon emissions globally.",
-    "Arctic ice crisis": "The Arctic is facing a severe crisis as ice coverage hits record lows. Scientists warn of alarming decline in biodiversity, devastating consequences for coastal communities, and dangerous acceleration of global warming.",
-    "EV adoption grows": "Electric vehicle adoption continues steady growth across Europe. Governments advance green transport policies, with renewable charging infrastructure expanding rapidly. The transition benefits air quality and reduces harmful emissions.",
-    "Deforestation threat": "Deforestation rates remain a critical threat to biodiversity. The loss of forest coverage damages ecosystems, worsens carbon absorption, and creates severe risk for indigenous communities.",
-    "Wind energy progress": "Offshore wind energy projects show promising progress. New turbines achieve record output, providing clean sustainable electricity to millions. The sector advances rapidly with innovative technology.",
-}
+# ── Sidebar ──────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("## 🌍 Climate Sentiment")
+    st.markdown("---")
+    st.markdown(
+        "Analyze sentiment in climate & sustainability news using an NLP pipeline "
+        "built on VADER with a domain-specific climate lexicon."
+    )
+    st.markdown("---")
+    st.markdown("**Navigate**")
+    st.page_link("app.py", label="Overview", icon="🏠")
+    st.page_link("pages/1_Analyzer.py", label="Analyzer", icon="📝")
+    st.page_link("pages/2_Batch.py", label="Batch Analysis", icon="📊")
+    st.page_link("pages/3_Trends.py", label="Trends", icon="📈")
+    st.markdown("---")
+    st.caption("Built with Streamlit · VADER NLP")
 
-# ── Input ──────────────────────────────────────────────────────────────────────
-st.subheader("📝 Analyze Text")
-tab1, tab2 = st.tabs(["Custom Text", "Sample Articles"])
 
-with tab1:
-    user_text = st.text_area("Enter climate-related text:", height=150,
-        placeholder="Paste any climate news article, report, or statement here...")
-    if st.button("Analyze", type="primary") and user_text.strip():
-        texts_to_analyze = {"Your text": user_text}
-    else:
-        texts_to_analyze = {}
+# ── Cached analysis ──────────────────────────────────────────────────────────
+@st.cache_data(show_spinner=False)
+def run_full_analysis() -> tuple[list, pd.DataFrame]:
+    analyzer = ClimateAnalyzer()
+    results = [analyzer.analyze_article(a) for a in SAMPLE_ARTICLES]
+    df = pd.DataFrame([r.to_dict() | {"category": a.category, "region": a.region}
+                       for r, a in zip(results, SAMPLE_ARTICLES)])
+    df["analyzed_at"] = pd.to_datetime(df["analyzed_at"])
+    return results, df
 
-with tab2:
-    selected = st.multiselect("Select articles to analyze:", list(SAMPLE_ARTICLES.keys()), default=list(SAMPLE_ARTICLES.keys())[:3])
-    if st.button("Analyze Selected", type="primary"):
-        texts_to_analyze = {k: SAMPLE_ARTICLES[k] for k in selected}
 
-# ── Analysis ───────────────────────────────────────────────────────────────────
-if texts_to_analyze:
-    st.divider()
-    results = {name: analyze_sentiment(text) for name, text in texts_to_analyze.items()}
-    df = pd.DataFrame([{"Article": k, "Sentiment": v["label"], "Score": v["score"],
-                         "Positive hits": v["positive_hits"], "Negative hits": v["negative_hits"],
-                         "Climate keywords": len(v["climate_keywords"]), "Words": v["word_count"]}
-                        for k, v in results.items()])
+results, df = run_full_analysis()
 
-    # KPIs
-    col1, col2, col3 = st.columns(3)
-    avg_score = df["Score"].mean()
-    col1.metric("Avg sentiment score", round(avg_score, 3))
-    col2.metric("Most positive", df.loc[df["Score"].idxmax(), "Article"][:20])
-    col3.metric("Most negative", df.loc[df["Score"].idxmin(), "Article"][:20])
+# ── Header ───────────────────────────────────────────────────────────────────
+st.markdown("# 🌍 Climate Sentiment Analyzer")
+st.markdown(
+    "Real-time NLP analysis of climate & sustainability news. "
+    "Powered by VADER with a custom climate domain lexicon."
+)
+st.divider()
 
-    st.subheader("📊 Results")
-    col_a, col_b = st.columns(2)
+# ── KPI Row ──────────────────────────────────────────────────────────────────
+pos_count = (df["label"] == "Positive").sum()
+neg_count = (df["label"] == "Negative").sum()
+neu_count = (df["label"] == "Neutral").sum()
+avg_score = df["score"].mean()
+avg_kd = df["keyword_density"].mean()
 
-    with col_a:
-        st.dataframe(df, use_container_width=True)
+k1, k2, k3, k4, k5 = st.columns(5)
+k1.metric("Articles Analyzed", len(df))
+k2.metric("Positive", int(pos_count), delta=f"{pos_count/len(df)*100:.0f}%")
+k3.metric("Negative", int(neg_count), delta=f"-{neg_count/len(df)*100:.0f}%", delta_color="inverse")
+k4.metric("Avg Sentiment Score", f"{avg_score:+.3f}")
+k5.metric("Avg Keyword Density", f"{avg_kd:.1%}")
 
-    with col_b:
-        fig, ax = plt.subplots(figsize=(5, 3))
-        colors = ["#1D9E75" if s > 0.1 else ("#D85A30" if s < -0.1 else "#F0C419") for s in df["Score"]]
-        ax.barh(df["Article"], df["Score"], color=colors)
-        ax.axvline(0, color="gray", linewidth=0.8, linestyle="--")
-        ax.set_xlabel("Sentiment Score")
-        ax.set_title("Sentiment by Article")
-        patches = [mpatches.Patch(color="#1D9E75", label="Positive"),
-                   mpatches.Patch(color="#F0C419", label="Neutral"),
-                   mpatches.Patch(color="#D85A30", label="Negative")]
-        ax.legend(handles=patches, fontsize=8)
-        plt.tight_layout()
-        st.pyplot(fig)
+st.divider()
 
-    # Keyword cloud
-    st.subheader("🔑 Climate Keyword Frequency")
-    all_keywords = []
-    for r in results.values():
-        all_keywords.extend(r["climate_keywords"])
-    if all_keywords:
-        kw_counts = Counter(all_keywords).most_common(15)
-        kw_df = pd.DataFrame(kw_counts, columns=["Keyword", "Count"])
-        fig3, ax3 = plt.subplots(figsize=(8, 3))
-        ax3.bar(kw_df["Keyword"], kw_df["Count"], color="#7F77DD")
-        ax3.set_ylabel("Frequency")
-        plt.xticks(rotation=30, ha="right")
-        plt.tight_layout()
-        st.pyplot(fig3)
-    else:
-        st.info("No climate keywords detected in selected articles.")
-else:
-    st.info("👆 Enter text or select sample articles above to begin analysis.")
+# ── Row 1: Donut + Bar ────────────────────────────────────────────────────────
+col_l, col_r = st.columns([1, 2])
+
+with col_l:
+    st.subheader("Sentiment Distribution")
+    counts = df["label"].value_counts().reset_index()
+    counts.columns = ["label", "count"]
+    color_map = {"Positive": "#2ECC71", "Neutral": "#F39C12", "Negative": "#E74C3C"}
+    fig_donut = px.pie(
+        counts,
+        names="label",
+        values="count",
+        hole=0.55,
+        color="label",
+        color_discrete_map=color_map,
+    )
+    fig_donut.update_traces(textinfo="label+percent", pull=[0.03, 0.03, 0.03])
+    fig_donut.update_layout(
+        showlegend=False,
+        margin=dict(t=10, b=10, l=10, r=10),
+        height=300,
+    )
+    st.plotly_chart(fig_donut, use_container_width=True)
+
+with col_r:
+    st.subheader("Sentiment Score by Article")
+    df_sorted = df.sort_values("score")
+    colors = df_sorted["label"].map(color_map)
+    fig_bar = go.Figure(go.Bar(
+        x=df_sorted["score"],
+        y=df_sorted["source"],
+        orientation="h",
+        marker_color=colors,
+        hovertemplate="<b>%{y}</b><br>Score: %{x:.3f}<extra></extra>",
+    ))
+    fig_bar.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
+    fig_bar.add_vline(x=0.05, line_dash="dot", line_color="#2ECC71", line_width=0.8)
+    fig_bar.add_vline(x=-0.05, line_dash="dot", line_color="#E74C3C", line_width=0.8)
+    fig_bar.update_layout(
+        xaxis_title="Compound Sentiment Score",
+        yaxis_title=None,
+        margin=dict(t=10, b=10, l=10, r=10),
+        height=380,
+        xaxis=dict(range=[-1, 1]),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+# ── Row 2: Category breakdown + Keyword frequency ────────────────────────────
+col_a, col_b = st.columns(2)
+
+with col_a:
+    st.subheader("Avg Score by Category")
+    cat_df = df.groupby("category")["score"].mean().reset_index().sort_values("score")
+    cat_df["color"] = cat_df["score"].apply(
+        lambda s: "#2ECC71" if s > 0.05 else ("#E74C3C" if s < -0.05 else "#F39C12")
+    )
+    fig_cat = go.Figure(go.Bar(
+        x=cat_df["score"],
+        y=cat_df["category"],
+        orientation="h",
+        marker_color=cat_df["color"],
+        hovertemplate="<b>%{y}</b><br>Avg Score: %{x:.3f}<extra></extra>",
+    ))
+    fig_cat.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
+    fig_cat.update_layout(
+        xaxis_title="Avg Compound Score",
+        yaxis_title=None,
+        height=260,
+        margin=dict(t=10, b=10, l=10, r=10),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+    st.plotly_chart(fig_cat, use_container_width=True)
+
+with col_b:
+    st.subheader("Top Climate Keywords")
+    from src.climate_analyzer.analyzer import ClimateAnalyzer as _CA
+    _a = _CA()
+    top_kw = _a.top_keywords(results, n=12)
+    kw_df = pd.DataFrame(top_kw, columns=["keyword", "count"])
+    fig_kw = px.bar(
+        kw_df,
+        x="count",
+        y="keyword",
+        orientation="h",
+        color="count",
+        color_continuous_scale="Tealgrn",
+        labels={"count": "Frequency", "keyword": ""},
+    )
+    fig_kw.update_layout(
+        height=260,
+        margin=dict(t=10, b=10, l=10, r=10),
+        coloraxis_showscale=False,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+    st.plotly_chart(fig_kw, use_container_width=True)
+
+# ── Row 3: Region heatmap ─────────────────────────────────────────────────────
+st.subheader("Sentiment by Region")
+region_df = df.groupby("region")["score"].mean().reset_index()
+fig_region = px.bar(
+    region_df.sort_values("score"),
+    x="region",
+    y="score",
+    color="score",
+    color_continuous_scale=["#E74C3C", "#F39C12", "#2ECC71"],
+    range_color=[-1, 1],
+    labels={"score": "Avg Sentiment Score", "region": "Region"},
+)
+fig_region.add_hline(y=0, line_dash="dash", line_color="gray", line_width=1)
+fig_region.update_layout(
+    height=250,
+    margin=dict(t=10, b=10, l=10, r=10),
+    coloraxis_showscale=False,
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+)
+st.plotly_chart(fig_region, use_container_width=True)
+
+st.divider()
+st.caption("Navigate to **Analyzer**, **Batch Analysis**, or **Trends** using the sidebar.")
