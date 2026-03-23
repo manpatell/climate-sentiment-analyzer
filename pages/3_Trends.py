@@ -218,8 +218,6 @@ fig_conf = px.scatter(
     color="label",
     color_discrete_map=color_map,
     hover_name="title",
-    trendline="ols",
-    trendline_scope="overall",
     labels={"score": "Compound Score", "confidence": "Model Confidence", "label": "Sentiment"},
 )
 fig_conf.update_layout(
