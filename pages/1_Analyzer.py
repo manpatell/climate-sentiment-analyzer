@@ -46,7 +46,7 @@ col_input, col_sample = st.columns([3, 1])
 with col_sample:
     st.markdown("**Quick-load a sample:**")
     sample_titles = [a.title for a in SAMPLE_ARTICLES]
-    chosen = st.selectbox("", ["— select —"] + sample_titles, label_visibility="collapsed")
+    chosen = st.selectbox("Sample article", ["— select —"] + sample_titles, label_visibility="collapsed")
     if chosen != "— select —":
         article = next(a for a in SAMPLE_ARTICLES if a.title == chosen)
         st.session_state["analyzer_text"] = article.body
@@ -116,7 +116,7 @@ if run and text_input.strip():
             },
         ))
         fig_gauge.update_layout(height=280, margin=dict(t=30, b=0, l=30, r=30))
-        st.plotly_chart(fig_gauge, use_container_width=True)
+        st.plotly_chart(fig_gauge, width="stretch")
 
     with bars_col:
         st.markdown("**Positive / Neutral / Negative Breakdown**")
@@ -146,7 +146,7 @@ if run and text_input.strip():
             paper_bgcolor="rgba(0,0,0,0)",
             barmode="overlay",
         )
-        st.plotly_chart(fig_scores, use_container_width=True)
+        st.plotly_chart(fig_scores, width="stretch")
 
     # — Climate keywords section
     st.markdown("**Climate Keywords Detected**")

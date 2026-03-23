@@ -120,7 +120,7 @@ with col_l:
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
     )
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    st.plotly_chart(fig_scatter, width="stretch")
 
 with col_r:
     st.subheader("Sentiment Distribution")
@@ -140,7 +140,7 @@ with col_r:
         height=360,
         margin=dict(t=10, b=10, l=10, r=10),
     )
-    st.plotly_chart(fig_pie, use_container_width=True)
+    st.plotly_chart(fig_pie, width="stretch")
 
 # ── Horizontal bar chart ──────────────────────────────────────────────────────
 st.subheader("Sentiment Scores — All Selected Articles")
@@ -163,7 +163,7 @@ fig_bar.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",
     paper_bgcolor="rgba(0,0,0,0)",
 )
-st.plotly_chart(fig_bar, use_container_width=True)
+st.plotly_chart(fig_bar, width="stretch")
 
 # ── Data table ────────────────────────────────────────────────────────────────
 st.subheader("Results Table")

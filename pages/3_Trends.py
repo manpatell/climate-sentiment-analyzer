@@ -7,6 +7,7 @@ with rolling averages, category breakdowns, and annotated climate events.
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -71,10 +72,10 @@ trend_df["rolling_avg"] = trend_df["score"].rolling(window=window, min_periods=1
 
 # Notable climate events for annotation
 EVENTS = [
-    {"date": "2025-09-22", "label": "UNGA Climate Week"},
-    {"date": "2025-10-15", "label": "Arctic ice record"},
-    {"date": "2025-11-01", "label": "COP30 opens"},
-    {"date": "2025-12-01", "label": "EU deforestation law"},
+    {"date": datetime(2025, 9, 22), "label": "UNGA Climate Week"},
+    {"date": datetime(2025, 10, 15), "label": "Arctic ice record"},
+    {"date": datetime(2025, 11, 1), "label": "COP30 opens"},
+    {"date": datetime(2025, 12, 1), "label": "EU deforestation law"},
 ]
 
 # ── Header ────────────────────────────────────────────────────────────────────
@@ -169,7 +170,7 @@ fig_line.update_layout(
     paper_bgcolor="rgba(0,0,0,0)",
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
 )
-st.plotly_chart(fig_line, use_container_width=True)
+st.plotly_chart(fig_line, width="stretch")
 
 # ── Category breakdown over time ──────────────────────────────────────────────
 st.subheader("Avg Score by Category Over Time")
@@ -197,7 +198,7 @@ fig_cat.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",
     paper_bgcolor="rgba(0,0,0,0)",
 )
-st.plotly_chart(fig_cat, use_container_width=True)
+st.plotly_chart(fig_cat, width="stretch")
 
 # ── Confidence vs Score scatter ───────────────────────────────────────────────
 st.subheader("Confidence vs Score")
@@ -218,4 +219,4 @@ fig_conf.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",
     paper_bgcolor="rgba(0,0,0,0)",
 )
-st.plotly_chart(fig_conf, use_container_width=True)
+st.plotly_chart(fig_conf, width="stretch")

@@ -105,7 +105,7 @@ with col_l:
         margin=dict(t=10, b=10, l=10, r=10),
         height=300,
     )
-    st.plotly_chart(fig_donut, use_container_width=True)
+    st.plotly_chart(fig_donut, width="stretch")
 
 with col_r:
     st.subheader("Sentiment Score by Article")
@@ -130,7 +130,7 @@ with col_r:
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
     )
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_bar, width="stretch")
 
 # ── Row 2: Category breakdown + Keyword frequency ────────────────────────────
 col_a, col_b = st.columns(2)
@@ -157,7 +157,7 @@ with col_a:
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
     )
-    st.plotly_chart(fig_cat, use_container_width=True)
+    st.plotly_chart(fig_cat, width="stretch")
 
 with col_b:
     st.subheader("Top Climate Keywords")
@@ -181,7 +181,7 @@ with col_b:
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
     )
-    st.plotly_chart(fig_kw, use_container_width=True)
+    st.plotly_chart(fig_kw, width="stretch")
 
 # ── Row 3: Region heatmap ─────────────────────────────────────────────────────
 st.subheader("Sentiment by Region")
@@ -203,7 +203,7 @@ fig_region.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",
     paper_bgcolor="rgba(0,0,0,0)",
 )
-st.plotly_chart(fig_region, use_container_width=True)
+st.plotly_chart(fig_region, width="stretch")
 
 st.divider()
 st.caption("Navigate to **Analyzer**, **Batch Analysis**, or **Trends** using the sidebar.")
